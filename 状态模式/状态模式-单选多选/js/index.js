@@ -29,10 +29,10 @@ $(function(){
             }
         }
         if (v.yes==1){
-            str += `<li><span class="yes select">已选</span> <span>${v.name}</span></li>`
+            str += `<li><span class="yes select">已选</span> <span>${v.name}</span><button class="remove">删除</button></li>`
             fsm.push(new StateMachine(Nature))
         }else{
-            str += `<li><span class="no select">未选</span><span>${v.name}</span></li>`
+            str += `<li><span class="no select">未选</span><span>${v.name}</span><button class="remove">删除</button></li>`
             fsm.push(new StateMachine(Nature))
         }
     })
@@ -48,20 +48,16 @@ $(function(){
             fsmSingle.select(index);
         }
     })
-    $('#allSelect').click(function(){
-        fsm.forEach(function(v,i){
-            if (v.is('0')){
-                v.select(i);
-            }
-        })
+    
+    $('ul').on('click','.remove',function(e){
+        e.stopPropagation();
+        var $li = $(this).parent()
+        var index = $li.index();
+        fsm.splice(index, 1);
+        $li.remove();
     })
-    $('#cancelSelect').click(function(){
-        fsm.forEach(function(v,i){
-            if (v.is('1')){
-                v.unselected(i);
-            }
-        })
-    })
+    allSelect();
+    addItems();
 })
 
 function setSelectRenderDom(index){
@@ -72,4 +68,100 @@ function setSelectRenderDom(index){
     }else {
         $ChoiceItem.find('.select').text('已选').removeClass('no').addClass('yes')
     }
+}
+
+function allSelect(){
+    // 用来储存全选前的数据，便于取消全选后的状态恢复操作
+    var isYesArray = []
+    var Nature = {
+        init:'0',
+        transitions:[
+            {
+                name:'allselect',
+                from:'0',
+                to:'1'
+            },{
+                name:'unallselected',
+                from:'1',
+                to:'0'
+            }
+        ],
+        methods:{
+            onAllselect:function(self,index){
+                fsm.forEach(function(v,i){
+                    if (v.is('0')){
+                        v.select(i);
+                    }else{
+                        isYesArray.push(i)
+                    }
+                })
+            },
+            onUnallselected:function(self,index){
+                fsm.forEach(function(v,i){
+                    if (isYesArray.length>0){
+                        // fn
+                        for (var ind=0;ind<isYesArray.length;ind++){
+                            var val = isYesArray[ind]
+                            if(i==val){
+                                continue;
+                            }else{
+                                if (v.is('1')){
+                                    v.unselected(i);
+                                };
+                                continue;
+                            }
+                        }
+                        // isYesArray.forEach(function(val,ind){
+
+                        // })
+                    }else{
+                        if (v.is('1')){
+                            v.unselected(i);
+                        }
+                    }
+                })
+                isYesArray = []
+                console.log(isYesArray)
+            }
+        }
+    }
+    var AllSelectFsm = new StateMachine(Nature);
+    $('#allSelect').click(function(){
+        if (AllSelectFsm.is('0')){
+            AllSelectFsm.allselect()
+
+        }else{
+            AllSelectFsm.unallselected()
+        }
+    })
+}
+
+function addItems(){
+    var Nature = {
+        init:'0',
+        transitions:[
+            {
+                name:'select',
+                from:'0',
+                to:'1'
+            },{
+                name:'unselected',
+                from:'1',
+                to:'0'
+            }
+        ],
+        methods:{
+            onSelect:function(self,index){
+                setSelectRenderDom.call(this,index)
+            },
+            onUnselected:function(self,index){
+                setSelectRenderDom.call(this,index)
+            }
+        }
+    }
+    var str = `<li><span class="no select">未选</span><span>阿三打撒阿斯顿我去额他啊是大</span><button class="remove">删除</button></li>`
+    $('#add').click(function(){
+        $('ul').append(str)
+        fsm.push(new StateMachine(Nature))
+    })
 }
